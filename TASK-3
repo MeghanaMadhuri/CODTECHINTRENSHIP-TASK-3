@@ -1,0 +1,52 @@
+# Import necessary libraries
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.datasets import fetch_20newsgroups
+
+# Load IMDB dataset
+# Note: The 'imdb' dataset is not available in sklearn. Instead, we will use the '20newsgroups' dataset.
+# If you want to use the IMDB dataset, you can download it from https://www.kaggle.com/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews
+# and load it manually.
+
+# Load 20newsgroups dataset
+newsgroups_train = fetch_20newsgroups(subset='train')
+newsgroups_test = fetch_20newsgroups(subset='test')
+
+# Tokenize and preprocess text data
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+def preprocess_text(text):
+    tokens = word_tokenize(text)
+    tokens = [t for t in tokens if t.isalpha()]
+    tokens = [t for t in tokens if t not in stopwords.words('english')]
+    tokens = [WordNetLemmatizer().lemmatize(t) for t in tokens]
+    return ' '.join(tokens)
+
+newsgroups_train.data = [preprocess_text(text) for text in newsgroups_train.data]
+newsgroups_test.data = [preprocess_text(text) for text in newsgroups_test.data]
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = newsgroups_train.data, newsgroups_test.data, newsgroups_train.target, newsgroups_test.target
+
+# Create TF-IDF vectorizer
+vectorizer = TfidfVectorizer(max_features=5000)
+X_train_tfidf = vectorizer.fit_transform(X_train)
+X_test_tfidf = vectorizer.transform(X_test)
+
+# Train Naive Bayes classifier
+clf = MultinomialNB()
+clf.fit(X_train_tfidf, y_train)
+
+# Evaluate model on test data
+y_pred = clf.predict(X_test_tfidf)
+print(f'Test accuracy: {accuracy_score(y_test, y_pred):.2f}')
+print(f'Classification report:\n{classification_report(y_test, y_pred)}')
+print(f'Confusion matrix:\n{confusion_matrix(y_test, y_pred)}')
